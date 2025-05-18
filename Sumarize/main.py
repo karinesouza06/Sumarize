@@ -3,7 +3,9 @@ from typing import List
 from pydantic import BaseModel, validator
 from models import Resumo, TextoEntrada
 
-app = FastAPI()
+app = FastAPI(title="API de Resumos Markdown",
+             description="API para processamento de textos em Markdown",
+             version="1.0.0")
 
 resumos: List[Resumo] = []
 
@@ -15,8 +17,28 @@ def validar_markdown(cls, value):
         raise ValueError("O texto deve conter pelo menos um elemento de Markdown.")
     return value
 
-@app.post("/resumir/", response_model=Resumo)
-def create_resumo(resumo: TextoEntrada):
+@app.post("/resumir/",
+         response_model=Resumo,
+         responses={
+             200: {
+                 "description": "Resumo criado com sucesso",
+                 "content": {
+                     "application/json": {
+                         "example": {"texto": "## Resumo\\n- Ponto principal\\n- Outro ponto"}
+                     }
+                 }
+             },
+             400: {
+                 "description": "Erro de validação",
+                 "content": {
+                     "application/json": {
+                         "example": {"detail": "Texto muito longo"}
+                     }
+                 }
+             }
+         })
+async def create_resumo(resumo: TextoEntrada):
+    
     if len(resumo.texto) > 3000:
         raise HTTPException(status_code=400, detail="Texto muito longo, reduza a quantidade de caracteres para 3000")
 
@@ -25,5 +47,7 @@ def create_resumo(resumo: TextoEntrada):
     return novo_resumo
 
 @app.get("/resumos/", response_model=List[Resumo])
-def listar_resumos():
+async def listar_resumos():
     return resumos
+
+
